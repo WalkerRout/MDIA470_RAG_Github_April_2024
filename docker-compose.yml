@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  app:
+    build: ./app/
+    depends_on:
+      - ollama
+    volumes:
+      - ./app:/app # sync local and docker files for hot reload to take effect in flask debug mode
+    ports: 
+      - 5000:5000
+    environment:
+      - FLASK_DEBUG=1 # remove in release
+
+  ollama:
+    image: ollama/ollama
+    volumes:
+      - ollama:/root/.ollama
+    ports: # remove in release
+      - 11434:11434
+    expose:
+      - 11434
+    entrypoint: ["bash", "-c", "ollama serve"]
+    command:
+      - pull mistral
+    # enable GPU support in release
+    #environment:
+    #  - gpus=all
+    #deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia
+    #          count: 1
+    #          capabilities: [gpu]
+
+volumes:
+  ollama:
+    name: ollama
+  app:
+    name: app

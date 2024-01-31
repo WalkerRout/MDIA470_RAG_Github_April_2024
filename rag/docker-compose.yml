@@ -1,8 +1,0 @@
-version: '3'
-services:
-  lib-rag:
-    build: .
-    ports:
-      - 8333:8333
-    env_file:
-      - SECRETS.env
