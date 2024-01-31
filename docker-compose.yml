@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   app:
-    build: ./app/
+    build: ./app/ # local source for backend
     depends_on:
-      - ollama
+      - ollama # build ollama before app
     volumes:
       - ./app:/app # sync local and docker files for hot reload to take effect in flask debug mode
     ports: 
-      - 5000:5000
+      - 5000:5000 # expose port to host
     environment:
       - FLASK_DEBUG=1 # remove in release
 
@@ -17,22 +17,24 @@ services:
     volumes:
       - ollama:/root/.ollama
     ports: # remove in release
-      - 11434:11434
+      - 11434:11434 # expose port to host
     expose:
-      - 11434
-    entrypoint: ["bash", "-c", "ollama serve"]
+      - 11434 # expose port to other services only
+    entrypoint: ["bash", "-c", "ollama serve"] # start model*
     command:
-      - pull mistral
-    # enable GPU support in release
-    #environment:
-    #  - gpus=all
-    #deploy:
-    #  resources:
-    #    reservations:
-    #      devices:
-    #        - driver: nvidia
-    #          count: 1
-    #          capabilities: [gpu]
+      - pull mistral # may need to run 'ollama pull mistral' in docker desktop project3-ollama-1 exec tab
+    # -----------------------------
+    # enable GPU support
+    environment:
+      - gpus=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia # never tested anything but nvidia here..
+              count: 1
+              capabilities: [gpu]
+    # -----------------------------
 
 volumes:
   ollama:
