@@ -1,4 +1,4 @@
-from langchain_community.llms import Ollama
+from langchain_community.chat_models import ChatOllama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -32,7 +32,7 @@ def ollama():
   if topic is not None:
     # construct chain using prompt and ollama instance running on other container
     prompt = ChatPromptTemplate.from_template("Tell me a short joke about {topic}")
-    llm = Ollama(base_url="http://ollama:11434", model="mistral")
+    llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
     chain = prompt | llm | StrOutputParser()
 
     answer = chain.invoke({"topic": topic})
