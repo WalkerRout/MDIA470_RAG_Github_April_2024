@@ -1,0 +1,51 @@
+<html>
+  <head>
+    <title>Project3</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+  </head>
+  <body>
+    <div id="main" class="flex-container">
+      <div id="flashed-messages">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class=flashes>
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <div id="conversation-history">
+        {% for entry in history %}
+          <p> {{ entry }} </p>
+        {% endfor %}
+      </div> <!-- Console -->
+
+      <div id="file-upload">
+        <h1> Upload files </h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+          <p><input name="files" type="file" multiple/></p>
+          <p><input type="submit" /></p>
+        </form>
+      </div> <!-- File uploader -->
+
+      <div id="prompt-submit">
+        <h1> Enter question </h1>
+        <form action="/submit" method="post">
+          <input name="prompt" value="Why is the sky blue?" />
+          <input type="submit" />
+        </form>
+      </div> <!-- Prompt submission -->
+
+      <div>
+      </div> <!-- Visualization -->
+
+      <div>
+        <a href="/clear-history">Clear History</a>
+        <a href="/clear-storage">Clear Storage</a>
+      </div> <!-- Clear session data for debugging -->
+    </div>
+  </body>
+</html>
