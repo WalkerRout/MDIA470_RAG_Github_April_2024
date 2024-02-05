@@ -4,11 +4,50 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
   </head>
   <body>
-    <div id="main" class="flex-container">
+    <div id="main" class="main-container">
+      <div id="console" class="console">
+
+        <div id="conversation-history" class="history">
+          <textarea id="entries" readonly>
+            {% for entry in history %}
+              {{ entry }}
+            {% endfor %}
+          </textarea>
+        </div> <!-- History/Main console -->
+
+        <div id="prompt-submit" class="prompt">
+          <form action="/submit" method="post">
+            <label> Prompt: </label>
+            <input name="prompt" value="Why is the sky blue?" />
+            <input type="submit" />
+          </form>
+        </div> <!-- Prompt submission -->
+
+      </div> <!-- Console -->
+
+      <div id="option-bar" class="option-bar">
+
+        <div id="file-upload" class="upload">
+          <h1> Upload files </h1>
+          <form action="/upload" method="post" enctype="multipart/form-data">
+            <p><input name="files" type="file" multiple/></p>
+            <p><input type="submit" /></p>
+          </form>
+          <h2> Uploaded files: </h2>
+        </div> <!-- File uploader -->
+        
+        <div id="visualization" class="visualization">
+          Vis
+        </div> <!-- Visualization -->
+
+      </div> <!-- Option Bar -->
+    </div> <!-- Main Container -->
+
+    <div id="utility">
       <div id="flashed-messages">
         {% with messages = get_flashed_messages() %}
           {% if messages %}
-            <ul class=flashes>
+            <ul class="flashes">
             {% for message in messages %}
               <li>{{ message }}</li>
             {% endfor %}
@@ -17,34 +56,9 @@
         {% endwith %}
       </div>
 
-      <div id="conversation-history">
-        {% for entry in history %}
-          <p> {{ entry }} </p>
-        {% endfor %}
-      </div> <!-- Console -->
-
-      <div id="file-upload">
-        <h1> Upload files </h1>
-        <form action="/upload" method="post" enctype="multipart/form-data">
-          <p><input name="files" type="file" multiple/></p>
-          <p><input type="submit" /></p>
-        </form>
-      </div> <!-- File uploader -->
-
-      <div id="prompt-submit">
-        <h1> Enter question </h1>
-        <form action="/submit" method="post">
-          <input name="prompt" value="Why is the sky blue?" />
-          <input type="submit" />
-        </form>
-      </div> <!-- Prompt submission -->
-
       <div>
-      </div> <!-- Visualization -->
-
-      <div>
-        <a href="/clear-history">Clear History</a>
-        <a href="/clear-storage">Clear Storage</a>
+        <a href="/clear-history"> Clear History </a>
+        <a href="/clear-storage"> Clear Storage </a>
       </div> <!-- Clear session data for debugging -->
     </div>
   </body>

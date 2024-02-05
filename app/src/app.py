@@ -7,6 +7,7 @@ from flask import Flask, request, render_template, redirect, session, url_for, f
 from flask_session import Session
 
 import os
+import shutil
 import tempfile
 
 # internal modules
@@ -44,11 +45,18 @@ async def upload() -> str:
     @returns: str - HTML presented to user
   """
   if "storage" not in session:
-    session["storage"] = tempfile.TemporaryDirectory()
+    session["storage"] = {"handle": tempfile.TemporaryDirectory(delete=False)}
+    session["storage"]["path"] = session["storage"]["handle"].name
+    print(session["storage"]["path"]) 
 
   for file in request.files.getlist("files"):
     if file.filename != '':
-      print(file)
+      storage_path = session["storage"]["path"]
+      print(storage_path)
+      with tempfile.NamedTemporaryFile(dir=storage_path, delete=False) as tfile:
+        tfile.write(file.read())
+
+  print(session)
 
   return redirect(request.referrer)
 
@@ -93,7 +101,7 @@ async def clear_storage():
     @returns: str - HTML presented to user
   """
   if "storage" in session:
-    session["storage"].cleanup()
+    session["storage"]["handle"].cleanup()
   session.pop("storage", None)
   flash("Session storage successfully cleaned!")
   return redirect(request.referrer)

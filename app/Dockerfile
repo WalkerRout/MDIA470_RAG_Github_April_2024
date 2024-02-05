@@ -1,4 +1,4 @@
-FROM python:3.10-slim-bullseye as app
+FROM python:3.12-slim-bookworm as app
 
 WORKDIR /app
 
