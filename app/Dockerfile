@@ -1,5 +1,10 @@
 FROM python:3.12-slim-bookworm as app
 
+RUN apt-get update \
+  && apt-get -y install \
+    build-essential \
+    cmake
+
 WORKDIR /app
 
 COPY requirements.txt requirements.txt

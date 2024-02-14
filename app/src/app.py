@@ -6,6 +6,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from flask import Flask, request, render_template, redirect, session, url_for, flash
 from flask_session import Session
 
+from langchain_community.document_loaders import PyPDFDirectoryLoader
+from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores.utils import filter_complex_metadata
+from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 import os
 import shutil
 import tempfile
@@ -14,16 +20,22 @@ import tempfile
 from rag import PolicyRAG
 
 ### Main flask application ###
-dir_path = os.path.dirname(os.path.realpath(__file__))
-static_dir = os.path.join(dir_path, "../static")
-template_dir = os.path.join(dir_path, "../templates")
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-app = Flask(__name__, template_folder=template_dir, static_folder=static_dir)
+DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+STATIC_DIR = os.path.join(DIR_PATH, "../static")
+TEMPLATE_DIR = os.path.join(DIR_PATH, "../templates")
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.config["SECRET_KEY"] = "randomkey"
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"]= False
 
 Session(app)
+
+def allowed_file(filename):
+  return '.' in filename and \
+    filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
 async def root() -> str:
@@ -32,10 +44,16 @@ async def root() -> str:
     @purpose: create local variables to serve with index.html jinja2 template
     @returns: str - HTML presented to user
   """
-  history = ""
+  history = []
   if "history" in session:
     history = session["history"]
-  return render_template("index.html", **locals())
+
+  uploaded_files = []
+  if "storage" in session:
+    for upload_name in session["storage"]["upload-to-tmp"]:
+      uploaded_files.append(upload_name)
+
+  return render_template("demo.html", **locals())
 
 @app.route("/upload", methods=["POST"])
 async def upload() -> str:
@@ -45,18 +63,21 @@ async def upload() -> str:
     @returns: str - HTML presented to user
   """
   if "storage" not in session:
+    # TODO; change session["storage"] dict to object
     session["storage"] = {"handle": tempfile.TemporaryDirectory(delete=False)}
     session["storage"]["path"] = session["storage"]["handle"].name
-    print(session["storage"]["path"]) 
+    session["storage"]["upload-to-tmp"] = {}
 
   for file in request.files.getlist("files"):
-    if file.filename != '':
-      storage_path = session["storage"]["path"]
-      print(storage_path)
-      with tempfile.NamedTemporaryFile(dir=storage_path, delete=False) as tfile:
+    print(file.filename)
+    if file.filename != '' and file.filename not in session["storage"]["upload-to-tmp"]:
+      with tempfile.NamedTemporaryFile(dir=session["storage"]["path"], delete=False, suffix=".pdf") as tfile:
         tfile.write(file.read())
+        session["storage"]["upload-to-tmp"][file.filename] = tfile.name
+    else:
+      print("File is null or file.filename is in session")
 
-  print(session)
+  print(session["storage"]["upload-to-tmp"])
 
   return redirect(request.referrer)
 
@@ -73,10 +94,37 @@ async def submit() -> str:
   prompt = request.form["prompt"]
   if prompt is not None:
     session["history"] = session.get("history") + ["question: " + prompt]
+    
+    if "storage" in session:
+      text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
+      docs = PyPDFDirectoryLoader(path=session["storage"]["path"]).load()
+
+      if len(docs) == 0:
+        print(f"no pdf files found in {session["storage"]["path"]}")
+        import subprocess
+        subprocess.run(["ls", "-al", session["storage"]["path"]])
+        return redirect(request.referrer)
+
+      chunks = text_splitter.split_documents(docs)
+      chunks = filter_complex_metadata(chunks)
+
+      vector_store = Chroma.from_documents(documents=chunks, embedding=FastEmbedEmbeddings())
+      retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={
+          "k": 3,
+          "score_threshold": 0.5,
+        },
+      )
+    else:
+      print("No storage in session...")
+      retriever = None
 
     llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
-    rag = PolicyRAG(llm) # eventually chunk and cache files, check if files changed to rerun embeddings
+    rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
+    
     answer = rag.run(prompt)
+    #answer = "No clue..."
 
     session["history"] = session.get("history") + ["answer: " + answer]
 

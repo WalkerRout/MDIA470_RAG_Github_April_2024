@@ -33,7 +33,12 @@
             <p><input name="files" type="file" multiple/></p>
             <p><input type="submit" /></p>
           </form>
-          <h2> Uploaded files: </h2>
+          <div id="currently-uploaded">
+            <h2> Uploaded files: </h2>
+            {% for file in uploaded_files %}
+              <p> {{ file }} </p>
+            {% endfor %}
+          </div>
         </div> <!-- File uploader -->
         
         <div id="visualization" class="visualization">
