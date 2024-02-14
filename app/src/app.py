@@ -56,7 +56,7 @@ async def root() -> str:
   if session.get("storage"):
     uploaded_files = list(session["storage"]["user-server-names"])
 
-  return render_template("demo.html", **locals())
+  return render_template("index.html", **locals())
 
 @app.route("/upload", methods=["POST"])
 async def upload() -> str:
