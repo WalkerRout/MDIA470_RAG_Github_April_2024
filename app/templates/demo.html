@@ -164,6 +164,25 @@
       </div>
     </div>
 
+    <div id="utility">
+      <div id="flashed-messages">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <ul class="flashes">
+            {% for message in messages %}
+              <li>{{ message }}</li>
+            {% endfor %}
+            </ul>
+          {% endif %}
+        {% endwith %}
+      </div>
+
+      <div>
+        <a href="/clear-history"> Clear History </a>
+        <a href="/clear-storage"> Clear Storage </a>
+      </div> <!-- Clear session data for debugging -->
+    </div>
+
     <script>
       // Script goes here
     </script>

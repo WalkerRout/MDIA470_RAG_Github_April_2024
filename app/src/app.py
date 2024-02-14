@@ -1,7 +1,5 @@
 # external modules
-from langchain_community.chat_models import ChatOllama
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
+
 
 from flask import Flask, request, render_template, redirect, session, url_for, flash
 from flask_session import Session
@@ -9,9 +7,14 @@ from flask_session import Session
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores.utils import filter_complex_metadata
+from langchain_community.chat_models import ChatOllama
 from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain_openai import OpenAI
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+import subprocess
 import os
 import shutil
 import tempfile
@@ -30,6 +33,7 @@ app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 app.config["SECRET_KEY"] = "randomkey"
 app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_PERMANENT"]= False
+app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 
 Session(app)
 
@@ -37,7 +41,7 @@ def allowed_file(filename):
   return '.' in filename and \
     filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route("/")
+@app.route("/", methods=["GET"])
 async def root() -> str:
   """
     @params:  N/A
@@ -45,13 +49,12 @@ async def root() -> str:
     @returns: str - HTML presented to user
   """
   history = []
-  if "history" in session:
+  if session.get("history"):
     history = session["history"]
 
   uploaded_files = []
-  if "storage" in session:
-    for upload_name in session["storage"]["upload-to-tmp"]:
-      uploaded_files.append(upload_name)
+  if session.get("storage"):
+    uploaded_files = list(session["storage"]["user-server-names"])
 
   return render_template("demo.html", **locals())
 
@@ -63,23 +66,26 @@ async def upload() -> str:
     @returns: str - HTML presented to user
   """
   if "storage" not in session:
-    # TODO; change session["storage"] dict to object
     session["storage"] = {"handle": tempfile.TemporaryDirectory(delete=False)}
     session["storage"]["path"] = session["storage"]["handle"].name
-    session["storage"]["upload-to-tmp"] = {}
+    session["storage"]["user-server-names"] = {}
 
+  user_server_names = {}
   for file in request.files.getlist("files"):
-    print(file.filename)
-    if file.filename != '' and file.filename not in session["storage"]["upload-to-tmp"]:
+    if file.filename != '' and file.filename not in session["storage"]["user-server-names"]:
       with tempfile.NamedTemporaryFile(dir=session["storage"]["path"], delete=False, suffix=".pdf") as tfile:
         tfile.write(file.read())
-        session["storage"]["upload-to-tmp"][file.filename] = tfile.name
+        user_server_names.update({file.filename: tfile.name})
     else:
       print("File is null or file.filename is in session")
 
-  print(session["storage"]["upload-to-tmp"])
+  updated_storage = session.get("storage")
+  updated_storage["user-server-names"] |= user_server_names
+  session["storage"] = updated_storage
 
-  return redirect(request.referrer)
+  print(session["storage"])
+
+  return redirect(url_for("root"))
 
 @app.route("/submit", methods=["POST"])
 async def submit() -> str:
@@ -95,13 +101,12 @@ async def submit() -> str:
   if prompt is not None:
     session["history"] = session.get("history") + ["question: " + prompt]
     
-    if "storage" in session:
+    if session.get("storage"):
       text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
       docs = PyPDFDirectoryLoader(path=session["storage"]["path"]).load()
 
       if len(docs) == 0:
-        print(f"no pdf files found in {session["storage"]["path"]}")
-        import subprocess
+        flash(f"No PDF files found")
         subprocess.run(["ls", "-al", session["storage"]["path"]])
         return redirect(request.referrer)
 
@@ -113,14 +118,17 @@ async def submit() -> str:
         search_type="similarity_score_threshold",
         search_kwargs={
           "k": 3,
-          "score_threshold": 0.5,
+          "score_threshold": 0.4,
         },
       )
     else:
       print("No storage in session...")
       retriever = None
 
+    print(retriever)
+
     llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
+    #llm = OpenAI(base_url="http://ollama:11434/v1", api_key="ollama")
     rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
     
     answer = rag.run(prompt)
