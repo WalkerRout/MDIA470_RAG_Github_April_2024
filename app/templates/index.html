@@ -145,7 +145,7 @@
   </head>
 
   <body>
-    <div class="container">
+    <section class="container">
       <div class="first-div">
         <div class="upper-div" id="upperDiv">
           <!-- Scrollable list content goes here -->
@@ -180,8 +180,9 @@
           </form>
         </div>
       </div>
-    </div>
-    <div id="utility">
+    </section>
+
+    <section id="utility">
       <div id="flashed-messages">
         {% with messages = get_flashed_messages() %}
           {% if messages %}
@@ -197,7 +198,8 @@
         <a href="/clear-history"> Clear History </a>
         <a href="/clear-storage"> Clear Storage </a>
       </div> <!-- Clear session data for debugging -->
-    </div>
+    </section>
+
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>
 </html>
