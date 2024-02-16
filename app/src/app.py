@@ -37,10 +37,6 @@ app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 
 Session(app)
 
-def allowed_file(filename):
-  return '.' in filename and \
-    filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 @app.route("/", methods=["GET"])
 async def root() -> str:
   """
@@ -117,7 +113,7 @@ async def submit() -> str:
       retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={
-          "k": 3,
+          "k": 4,
           "score_threshold": 0.4,
         },
       )
@@ -128,11 +124,10 @@ async def submit() -> str:
     print(retriever)
 
     llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
-    #llm = OpenAI(base_url="http://ollama:11434/v1", api_key="ollama")
+    #llm = OpenAI()
     rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
     
     answer = rag.run(prompt)
-    #answer = "No clue..."
 
     session["history"] = session.get("history") + ["answer: " + answer]
 

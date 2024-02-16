@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
       body {
         display: flex;
-        height: calc(95vh - 20px); /* Adjusted height to include padding */
-        width: calc(95vw - 20px); /* Adjusted width to include padding */
+        flex-direction: column; /* Updated to column layout */
+        height: 100vh; /* Full height of the viewport */
+        margin: 0; /* Remove default margin */
       }
 
       .container {
         display: flex;
         height: 100%;
         width: 100%;
-        margin: 10px; /* Added margin for padding */
-        padding: 10px; /* Added padding for margin */
-        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        margin: 10px;
+        padding: 10px;
+        box-sizing: border-box;
       }
 
       .first-div {
@@ -124,8 +123,27 @@
         cursor: pointer;
         margin-left: 10px;
       }
+
+      #utility {
+        flex: 0 0 25%;
+        background-color: #d0d0d0;
+        padding: 10px;
+        margin-top: 10px; /* Added margin-top */
+      }
+
+      #flashed-messages {
+        margin-bottom: 10px;
+      }
+
+      #utility a {
+        display: block;
+        margin-bottom: 5px;
+      }
     </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
   </head>
+
   <body>
     <div class="container">
       <div class="first-div">
@@ -149,11 +167,11 @@
       </div>
       <div class="second-div">
         <div class="conversation">
-          <textarea class="conversation-history" id="entries" readonly>
+          <div class="conversation-history" id="entries">
             {% for entry in history %}
-              {{ entry }}
+              <p>{{ entry }}</p>
             {% endfor %}
-          </textarea>
+          </div>
         </div>
         <div class="prompt-container">
           <form class="prompt-submit-form" action="/submit" method="post">
@@ -163,7 +181,6 @@
         </div>
       </div>
     </div>
-
     <div id="utility">
       <div id="flashed-messages">
         {% with messages = get_flashed_messages() %}
@@ -176,15 +193,11 @@
           {% endif %}
         {% endwith %}
       </div>
-
       <div>
         <a href="/clear-history"> Clear History </a>
         <a href="/clear-storage"> Clear Storage </a>
       </div> <!-- Clear session data for debugging -->
     </div>
-
-    <script>
-      // Script goes here
-    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
   </body>
 </html>

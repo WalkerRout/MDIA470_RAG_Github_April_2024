@@ -25,15 +25,15 @@ services:
     command: ["serve"]
     # -----------------------------
     # enable GPU support
-    environment:
-      - gpus=all
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia # never tested anything but nvidia here..
-              count: 1
-              capabilities: [gpu]
+    #environment:
+    #  - gpus=all
+    #deploy:
+    #  resources:
+    #    reservations:
+    #      devices:
+    #        - driver: nvidia # never tested anything but nvidia here..
+    #          count: 1
+    #          capabilities: [gpu]
     # -----------------------------
 
 volumes:
