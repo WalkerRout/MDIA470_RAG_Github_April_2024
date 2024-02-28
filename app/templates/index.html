@@ -1,205 +1,121 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
-    <style>
-      body {
-        display: flex;
-        flex-direction: column; /* Updated to column layout */
-        height: 100vh; /* Full height of the viewport */
-        margin: 0; /* Remove default margin */
-      }
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, width=device-width" />
 
-      .container {
-        display: flex;
-        height: 100%;
-        width: 100%;
-        margin: 10px;
-        padding: 10px;
-        box-sizing: border-box;
-      }
-
-      .first-div {
-        flex: 0 0 25%;
-        background-color: #f0f0f0;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .upper-div {
-        min-height: 25%;
-        overflow-y: auto;
-        padding: 10px;
-        background-color: #c0c0c0;
-        resize: vertical;
-        overflow: hidden;
-      }
-
-      .lower-div {
-        min-height: 30%;
-        padding: 10px;
-        background-color: #a0a0a0;
-        overflow: hidden;
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .file-upload-form {
-        flex-grow: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
-
-      .file-input {
-        margin-bottom: 10px;
-      }
-
-      .file-list {
-        list-style: none;
-        padding: 0;
-      }
-
-      .file-list-item {
-        margin: 5px 0;
-        padding: 5px;
-        border: 1px solid #ccc;
-        background-color: #fff;
-      }
-
-      .second-div {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-      }
-
-      .conversation {
-        flex: 1;
-        overflow-y: auto;
-        padding: 10px;
-        background-color: #e0e0e0;
-      }
-
-      .prompt-container {
-        display: flex;
-        align-items: center;
-        margin-top: 10px;
-      }
-
-      .prompt-textfield {
-        flex-grow: 1;
-        box-sizing: border-box;
-        padding: 10px;
-        border: none;
-        outline: none;
-        font-size: 16px;
-        background-color: #f0f0f0;
-        max-height: 100px;
-        overflow-y: auto;
-        resize: none;
-      }
-
-      .conversation-history {
-        flex-grow: 1;
-        box-sizing: border-box;
-        padding: 10px;
-        border: none;
-        outline: none;
-        font-size: 16px;
-        background-color: #f0f0f0;
-        overflow-y: auto;
-        resize: none;
-        width: 100%;
-        height: 100%;
-      }
-
-      .submit-button {
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        padding: 10px;
-        cursor: pointer;
-        margin-left: 10px;
-      }
-
-      #utility {
-        flex: 0 0 25%;
-        background-color: #d0d0d0;
-        padding: 10px;
-        margin-top: 10px; /* Added margin-top */
-      }
-
-      #flashed-messages {
-        margin-bottom: 10px;
-      }
-
-      #utility a {
-        display: block;
-        margin-bottom: 5px;
-      }
-    </style>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Open Sans:wght@400;700&display=swap"
+    />
   </head>
-
   <body>
-    <section class="container">
-      <div class="first-div">
-        <div class="upper-div" id="upperDiv">
-          <!-- Scrollable list content goes here -->
-        </div>
-        <div class="lower-div" id="lowerDiv">
-          <!-- File upload form goes here -->
-          <form class="file-upload-form" action="/upload" method="post" enctype="multipart/form-data">
-            <input class="file-input" type="file" name="files" multiple>
-            <input type="submit" value="Upload">
-          </form>
-          <!-- Uploaded file list goes here -->
-          <div id="uploaded-file-list">
-            <h2> Uploaded files: </h2>
-            {% for file in uploaded_files %}
-              <p> {{ file }} </p>
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-      <div class="second-div">
-        <div class="conversation">
-          <div class="conversation-history" id="entries">
-            {% for entry in history %}
-              <p>{{ entry }}</p>
-            {% endfor %}
-          </div>
-        </div>
-        <div class="prompt-container">
-          <form class="prompt-submit-form" action="/submit" method="post">
-            <textarea class="prompt-textfield" name="prompt" placeholder="Type your message..."></textarea>
-            <input type="submit" class="submit-button" value="Submit">
-          </form>
-        </div>
-      </div>
-    </section>
+    <div class="empty-state-test">
+      <div class="sidebar">
+        <img
+          class="ubc-logo-2018-narrowsig-white-icon"
+          loading="eager"
+          alt=""
+          src="{{ url_for('static', filename='public/ubclogo2018narrowsigwhitergb72-1@2x.png') }}"
+        />
 
-    <section id="utility">
-      <div id="flashed-messages">
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <ul class="flashes">
-            {% for message in messages %}
-              <li>{{ message }}</li>
-            {% endfor %}
-            </ul>
-          {% endif %}
-        {% endwith %}
-      </div>
-      <div>
-        <a href="/clear-history"> Clear History </a>
-        <a href="/clear-storage"> Clear Storage </a>
-      </div> <!-- Clear session data for debugging -->
-    </section>
+        <div class="frame-button-secondary">
+          <button class="button-secondary" id="buttonSecondary">
+            <div class="content">
+              <b class="text">New Chat</b>
+              <img class="icon" alt="" src="{{ url_for('static', filename='public/icon.svg') }}" />
+            </div>
+          </button>
+          <button class="button-secondary1" id="buttonSecondary1">
+            <div class="content1">
+              <b class="text1">Chat History</b>
+              <img class="icon1" alt="" src="{{ url_for('static', filename='public/icon-1.svg') }}" />
+            </div>
+          </button>
+        </div>
 
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+        <div id="uploaded-file-list">
+          <h2> Uploaded files: </h2>
+          {% for file in uploaded_files %}
+            <p> {{ file }} </p>
+          {% endfor %}
+        </div>
+      </div>
+      <main class="main-content">
+        <section class="u-b-c-r-a-g-l-l-m-frame">
+          <div class="ubc-rag-llm">UBC RAG LLM 1.0</div>
+          <button class="button-secondary2" id="buttonSecondary2">
+            <div class="content2">
+              <b class="frame-u-b">end session</b>
+              <div class="icon2">
+                <div class="icon-placeholder"></div>
+              </div>
+            </div>
+          </button>
+        </section>
+        <div class="u-b-clogocrest-instance">
+          <div class="ubc-logo-crest-xl">
+            <img
+              class="ubc-logo-crest-icon"
+              loading="eager"
+              alt=""
+              src="{{ url_for('static', filename='public/ubclogocrest@2x.png') }}"
+            />
+          </div>
+          <h3 class="how-can-i">How can I help you today?</h3>
+        </div>
+
+        <div class="scrollable">
+          {% for entry in history %}
+            <p>{{ entry }}</p>
+          {% endfor %}
+        </div>
+
+        <div class="search-bar">
+          <button id="attach-button">
+            <img
+              class="attach-button-icon"
+              loading="eager"
+              alt=""
+              src="{{ url_for('static', filename='public/attachbutton.svg') }}"
+            />
+          </button>
+          <textarea id="question-text-area" name="prompt" placeholder="Type your message..."></textarea>
+          <button id="submit-button">
+            <img
+              class="submit-button-icon"
+              loading="eager"
+              alt=""
+              src="{{ url_for('static', filename='public/submitbutton.svg') }}"
+            />
+          </button>
+        </div>
+
+        <footer>
+          <div class="disclaimer">
+            UBC RAG LLM can make mistakes. Consider consulting the latest
+            available UBC policies when necessary.
+          </div>
+        </footer>
+      </main>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+      $("#buttonSecondary").on('click', function() {
+        alert("Hello!");
+      });
+      
+      $("#buttonSecondary1").on('click', function() {
+        alert("Hello!");
+      });
+      
+      $("#buttonSecondary2").on('click', function() {
+        alert("Hello!");
+      });
+    </script>
   </body>
 </html>

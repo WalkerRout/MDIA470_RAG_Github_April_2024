@@ -19,6 +19,9 @@
   color: var(--ubc-blue-1);
   text-align: center;
 }
+.scrollable {
+  overflow-y: auto;
+}
 .icon {
   height: 24px;
   width: 24px;

@@ -1,5 +1,6 @@
 pypdf==3.16.0
 fastembed==0.2.1
+qdrant-client==1.7.3
 chromadb==0.4.20
 flask[async]==3.0.1
 Flask-Session==0.6.0

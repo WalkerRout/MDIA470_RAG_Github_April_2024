@@ -1,6 +1,4 @@
 # external modules
-
-
 from flask import Flask, request, render_template, redirect, session, url_for, flash
 from flask_session import Session
 
@@ -14,6 +12,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
+from qdrant_client import QdrantClient
+
 import subprocess
 import os
 import shutil
@@ -21,9 +21,10 @@ import tempfile
 
 # internal modules
 from rag import PolicyRAG
+from user_storage import UserStorage
 
 ### Main flask application ###
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+ALLOWED_EXTENSIONS = ["pdf"]
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 STATIC_DIR = os.path.join(DIR_PATH, "../static")
@@ -36,6 +37,10 @@ app.config["SESSION_PERMANENT"]= False
 app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 
 Session(app)
+
+def allowed_file(file_name: str) -> bool:
+  return '.' in file_name and \
+    file_name.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/", methods=["GET"])
 async def root() -> str:
@@ -50,7 +55,8 @@ async def root() -> str:
 
   uploaded_files = []
   if session.get("storage"):
-    uploaded_files = list(session["storage"]["user-server-names"])
+    uploaded_files = session["storage"].upload_names()
+    subprocess.run(["ls", "-al", session["storage"].path()])
 
   return render_template("index.html", **locals())
 
@@ -62,24 +68,17 @@ async def upload() -> str:
     @returns: str - HTML presented to user
   """
   if "storage" not in session:
-    session["storage"] = {"handle": tempfile.TemporaryDirectory(delete=False)}
-    session["storage"]["path"] = session["storage"]["handle"].name
-    session["storage"]["user-server-names"] = {}
+    session["storage"] = UserStorage()
 
-  user_server_names = {}
+  storage = session["storage"]
   for file in request.files.getlist("files"):
-    if file.filename != '' and file.filename not in session["storage"]["user-server-names"]:
-      with tempfile.NamedTemporaryFile(dir=session["storage"]["path"], delete=False, suffix=".pdf") as tfile:
-        tfile.write(file.read())
-        user_server_names.update({file.filename: tfile.name})
+    if file.filename != '' \
+      and file.filename not in storage.upload_names() \
+      and allowed_file(file.filename):
+      storage.add_file(file.filename, file.read())
     else:
-      print("File is null or file.filename is in session")
-
-  updated_storage = session.get("storage")
-  updated_storage["user-server-names"] |= user_server_names
-  session["storage"] = updated_storage
-
-  print(session["storage"])
+      print("File is null or file.filename is invalid (in session or not supported)")
+  session["storage"] = storage
 
   return redirect(url_for("root"))
 
@@ -97,13 +96,15 @@ async def submit() -> str:
   if prompt is not None:
     session["history"] = session.get("history") + ["question: " + prompt]
     
-    if session.get("storage"):
+    if session.get("storage") and len(session["storage"].upload_names()) > 0:
       text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
-      docs = PyPDFDirectoryLoader(path=session["storage"]["path"]).load()
+      docs = PyPDFDirectoryLoader(path=session["storage"].path()).load()
 
       if len(docs) == 0:
         flash(f"No PDF files found")
-        subprocess.run(["ls", "-al", session["storage"]["path"]])
+        print("Files:")
+        subprocess.run(["ls", "-al", session["storage"].path()])
+        session["storage"].cleanup()
         return redirect(request.referrer)
 
       chunks = text_splitter.split_documents(docs)
@@ -118,13 +119,15 @@ async def submit() -> str:
         },
       )
     else:
-      print("No storage in session...")
+      flash("No Uploaded Documents")
       retriever = None
 
     print(retriever)
 
-    llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
-    #llm = OpenAI()
+    client = QdrantClient("localhost", port=6333)
+
+    #llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
+    llm = OpenAI(api_key="")
     rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
     
     answer = rag.run(prompt)
@@ -151,8 +154,8 @@ async def clear_storage():
     @purpose: cleanup temporary directory and pop "storage" from session
     @returns: str - HTML presented to user
   """
-  if "storage" in session:
-    session["storage"]["handle"].cleanup()
+  if session.get("storage"):
+    session["storage"].cleanup()
   session.pop("storage", None)
   flash("Session storage successfully cleaned!")
   return redirect(request.referrer)
