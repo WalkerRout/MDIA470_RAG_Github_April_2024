@@ -9,7 +9,7 @@ services:
     volumes:
       - ./app:/app # sync local and docker files for hot reload to take effect in flask debug mode
     ports:
-      - 5000:5000 # expose port to host
+      - 5123:5000 # expose port to host
     environment:
       - FLASK_DEBUG=1 # remove in release
 
