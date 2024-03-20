@@ -6,7 +6,7 @@ from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores.utils import filter_complex_metadata
 from langchain_community.chat_models import ChatOllama
-from langchain_community.embeddings import FastEmbedEmbeddings
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_openai import OpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -92,6 +92,8 @@ async def submit() -> str:
   if "history" not in session:
     session["history"] = []
 
+  embeddings = FastEmbedEmbeddings()
+
   prompt = request.form["prompt"]
   if prompt is not None:
     session["history"] = session.get("history") + ["question: " + prompt]
@@ -110,7 +112,7 @@ async def submit() -> str:
       chunks = text_splitter.split_documents(docs)
       chunks = filter_complex_metadata(chunks)
 
-      vector_store = Chroma.from_documents(documents=chunks, embedding=FastEmbedEmbeddings())
+      vector_store = Chroma.from_documents(documents=chunks, embedding=embeddings)
       retriever = vector_store.as_retriever(
         search_type="similarity_score_threshold",
         search_kwargs={
@@ -124,11 +126,9 @@ async def submit() -> str:
 
     print(retriever)
 
-    client = QdrantClient("localhost", port=6333)
-
     #llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
-    llm = OpenAI(api_key="")
-    rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
+    llm = OpenAI(api_key="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")
+    rag = PolicyRAG(llm, embeddings, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
     
     answer = rag.run(prompt)
 

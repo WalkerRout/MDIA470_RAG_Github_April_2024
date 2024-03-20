@@ -1,5 +1,7 @@
 # external modules
 from langchain_community.chat_models import ChatOllama
+from langchain_community.vectorstores import Qdrant
+from langchain_community.document_loaders import TextLoader
 
 from langchain_core.runnables import Runnable
 from langchain_core.vectorstores import VectorStoreRetriever
@@ -10,6 +12,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import StrOutputParser
 
+from qdrant_client import QdrantClient
+
 from typing import Optional
 
 # internal modules
@@ -17,10 +21,16 @@ from typing import Optional
 
 class PolicyRAG():
   model: Optional[BaseChatModel] = None
-  retriever: Optional[VectorStoreRetriever] = None
+  doc_retriever: Optional[VectorStoreRetriever] = None
+  policy_retriever: Optional[VectorStoreRetriever] = None
   chain: Runnable = None
 
-  def __init__(self, model: BaseChatModel, retriever: Optional[VectorStoreRetriever] = None) -> None:
+  def __init__(
+    self, 
+    model: BaseChatModel,
+    embeddings,
+    retriever: Optional[VectorStoreRetriever] = None
+  ) -> None:
     """
       @params:  model - BaseChatModel used in LCEL self.chain, for now almost always a ChatOllama instance,
                 retriever - VectorStoreRetriever used in addition to VectorStoreRetriever for Qdrant policies
@@ -29,27 +39,43 @@ class PolicyRAG():
       @returns: N/A
     """
 
-    self.model = model
-    # combine retriever with qdrant container retriever eventually
-    self.retriever = retriever
+    client = QdrantClient("localhost", port=6335)
+    qdrant = Qdrant(
+      client=client,
+      collection_name="policies",
+      embeddings=embeddings,
+    )
+    policy_retriever = qdrant.as_retriever()
 
-    self.context = {"question": RunnablePassthrough()}
-    if self.retriever is not None:
+    self.model = model
+    self.context = { 
+      "question": RunnablePassthrough(),
+      "policy_context": policy_retriever,
+    }
+
+    if retriever is not None:
+      self.context["document_context"] = retriever
       self.prompt = PromptTemplate.from_template(r"""
-          <s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved context 
-          to answer the question. If you don't know the answer, just say that you don't know. Use three sentences
-          maximum and keep the answer concise. [/INST] </s> 
-          [INST] Question: {question} 
-          Context: {context} 
-          Answer: [/INST]
+          <s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved 
+          context from policy and uploaded documents to answer the question. If you don't know the answer, just
+          say that you don't know. Use three sentences maximum and keep the answer concise. [/INST] </s> 
+          [INST]
+          Question: {question}
+          Policy Context: {policy_context}
+          Document Context: {document_context}
+          Answer: 
+          [/INST]
         """)
-      self.context["context"] = self.retriever
     else:
       self.prompt = PromptTemplate.from_template(r"""
-          <s> [INST] You are an assistant for question-answering tasks. Answer the question. If you don't know the 
-          answer, just say that you don't know. Use three sentences maximum and keep the answer concise. [/INST] </s>
-          [INST] Question: {question}
-          Answer: [/INST]
+          <s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved 
+          context from policy documents to answer the question. If you don't know the answer, just say that you 
+          don't know. Use three sentences maximum and keep the answer concise. [/INST] </s> 
+          [INST] 
+          Question: {question} 
+          Policy Context: {policy_context}
+          Answer: 
+          [/INST]
         """)
 
     self.chain = (self.context

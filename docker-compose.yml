@@ -5,7 +5,12 @@ services:
     container_name: app
     build: ./app/ # local source for backend
     depends_on:
-      - ollama # build ollama before app
+      # build ollama before app
+      ollama:
+        condition: service_healthy
+      # pull policies and setup qdrant before app
+      pull_policies:
+        condition: service_completed_successfully
     volumes:
       - ./app:/app # sync local and docker files for hot reload to take effect in flask debug mode
     ports:
@@ -22,7 +27,14 @@ services:
       - 11434:11434 # expose port to host
     expose:
       - 11434 # expose port to other services only
+    restart: always
     command: ["serve"]
+    healthcheck:
+      # ensure mistral is pulled with `docker exec ollama ollama pull mistral`
+      # otherwise fail with 'container for service "ollama" is unhealthy'
+      test: ["CMD", "ollama", "show", "--template", "mistral"]
+      retries: 0
+      timeout: 10s
     # -----------------------------
     # enable GPU support
     #environment:
@@ -35,20 +47,32 @@ services:
     #          count: 1
     #          capabilities: [gpu]
     # -----------------------------
+
   qdrant_policies:
     container_name: qdrant_policies
     image: qdrant/qdrant
     volumes:
-      - qdrant_policies:/root/.qdrant_policies
-    ports:
+      - ./qdrant_policies:/root/.qdrant_policies
+    ports: # remove in release
       - 6333:6333
+      - 6334:6334
     expose:
       - 6333
+      - 6334
+    restart: always
+    
+  pull_policies:
+    container_name: pull_policies
+    build: ./pull_policies/
+    depends_on:
+      - qdrant_policies
+    volumes:
+      - ./qdrant_policies:/root/.qdrant_policies
 
 volumes:
-  ollama:
-    name: ollama
   app:
     name: app
+  ollama:
+    name: ollama
   qdrant_policies:
     name: qdrant_policies

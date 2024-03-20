@@ -20,7 +20,8 @@
   text-align: center;
 }
 .scrollable {
-  overflow-y: auto;
+  height: 500px;
+  overflow-y: scroll;
 }
 .icon {
   height: 24px;
