@@ -3,122 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="initial-scale=1, width=device-width" />
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/global.css') }}" />
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}" />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Open Sans:wght@400;700&display=swap"
-    />
   </head>
   <body>
-    <div class="empty-state-test">
-      <div class="sidebar">
-        <img
-          class="ubc-logo-2018-narrowsig-white-icon"
-          loading="eager"
-          alt=""
-          src="{{ url_for('static', filename='public/ubclogo2018narrowsigwhitergb72-1@2x.png') }}"
-        />
-
-        <div class="frame-button-secondary">
-          <button class="button-secondary" id="buttonSecondary">
-            <div class="content">
-              <b class="text">New Chat</b>
-              <img class="icon" alt="" src="{{ url_for('static', filename='public/icon.svg') }}" />
-            </div>
-          </button>
-          <button class="button-secondary1" id="buttonSecondary1">
-            <div class="content1">
-              <b class="text1">Chat History</b>
-              <img class="icon1" alt="" src="{{ url_for('static', filename='public/icon-1.svg') }}" />
-            </div>
-          </button>
-        </div>
-
-        <div id="uploaded-file-list">
-          <h2> Uploaded files: </h2>
-          {% for file in uploaded_files %}
-            <p> {{ file }} </p>
-          {% endfor %}
-        </div>
-      </div>
-      <main class="main-content">
-        <section class="u-b-c-r-a-g-l-l-m-frame">
-          <div class="ubc-rag-llm">UBC RAG LLM 1.0</div>
-          <button class="button-secondary2" id="buttonSecondary2">
-            <div class="content2">
-              <b class="frame-u-b">end session</b>
-              <div class="icon2">
-                <div class="icon-placeholder"></div>
-              </div>
-            </div>
-          </button>
-        </section>
-        <div class="u-b-clogocrest-instance">
-          <div class="ubc-logo-crest-xl">
-            <img
-              class="ubc-logo-crest-icon"
-              loading="eager"
-              alt=""
-              src="{{ url_for('static', filename='public/ubclogocrest@2x.png') }}"
-            />
-          </div>
-          <h3 class="how-can-i">How can I help you today?</h3>
-        </div>
-
-        <div class="scrollable">
-          {% for entry in history %}
-            <p>{{ entry }}</p>
-          {% endfor %}
-        </div>
-
-        <div class="search-bar">
-          <button id="attach-button">
-            <img
-              class="attach-button-icon"
-              loading="eager"
-              alt=""
-              src="{{ url_for('static', filename='public/attachbutton.svg') }}"
-            />
-          </button>
-          <textarea id="question-text-area" name="prompt" placeholder="Type your message..."></textarea>
-          <button id="submit-button">
-            <img
-              class="submit-button-icon"
-              loading="eager"
-              alt=""
-              src="{{ url_for('static', filename='public/submitbutton.svg') }}"
-            />
-          </button>
-        </div>
-
-        <footer>
-          <div class="disclaimer">
-            UBC RAG LLM can make mistakes. Consider consulting the latest
-            available UBC policies when necessary.
-          </div>
-          <div>
-            <a href="/clear-history"> Clear History </a>
-            <a href="/clear-storage"> Clear Storage </a>
-          </div>
-        </footer>
-      </main>
+    <div>
+      <textarea id="userInput"placeholder="Type your query here..."></textarea>
+      <button id="submitBtn">Submit</button>
+      <div id="response"></div>
     </div>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <script>
-      $("#buttonSecondary").on('click', function() {
-        alert("Hello!");
-      });
-      
-      $("#buttonSecondary1").on('click', function() {
-        alert("Hello!");
-      });
-      
-      $("#buttonSecondary2").on('click', function() {
-        alert("Hello!");
+      $("#submitBtn").on("click", async function() { 
+        var userInput = document.getElementById("userInput").value;
+        document.getElementById("response").innerHTML = "<p>Processing...</p>";
+        const formData = new FormData();
+        formData.append("prompt", userInput); 
+        try {
+          const response = await fetch("/submit", {
+            method: "POST",
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+
+          const data = await response.json();
+          document.getElementById("response").innerHTML = `<p>${data.answer}</p><br><pre><b>Context: </b> ${data.context}</pre>`;
+        } catch (error) {
+          console.error("Error:", error);
+          document.getElementById("response").innerHTML = "<p>Error processing your request</p>";
+        }
       });
     </script>
   </body>

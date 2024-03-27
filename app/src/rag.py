@@ -1,4 +1,5 @@
 # external modules
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
 from langchain_community.chat_models import ChatOllama
 from langchain_community.vectorstores import Qdrant
 from langchain_community.document_loaders import TextLoader
@@ -28,7 +29,6 @@ class PolicyRAG():
   def __init__(
     self, 
     model: BaseChatModel,
-    embeddings,
     retriever: Optional[VectorStoreRetriever] = None
   ) -> None:
     """
@@ -39,13 +39,21 @@ class PolicyRAG():
       @returns: N/A
     """
 
-    client = QdrantClient("localhost", port=6335)
+    url = "http://qdrant_policies:6333" #todo make this env
+    embeddings = FastEmbedEmbeddings()
+    client = QdrantClient(url=url)
     qdrant = Qdrant(
       client=client,
-      collection_name="policies",
+      collection_name="ubc_pdf_policies", #todo make this env
       embeddings=embeddings,
     )
-    policy_retriever = qdrant.as_retriever()
+    policy_retriever = qdrant.as_retriever(
+      search_type="similarity_score_threshold",
+      search_kwargs={
+        "k": 4,
+        "score_threshold": 0.4,
+      },
+    )
 
     self.model = model
     self.context = { 
@@ -56,26 +64,24 @@ class PolicyRAG():
     if retriever is not None:
       self.context["document_context"] = retriever
       self.prompt = PromptTemplate.from_template(r"""
-          <s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved 
+          You are an assistant for question-answering tasks. Use the following pieces of retrieved 
           context from policy and uploaded documents to answer the question. If you don't know the answer, just
-          say that you don't know. Use three sentences maximum and keep the answer concise. [/INST] </s> 
-          [INST]
+          say that you don't know. Use three sentences maximum and keep the answer concise.
+
           Question: {question}
           Policy Context: {policy_context}
           Document Context: {document_context}
-          Answer: 
-          [/INST]
+          Helpful Answer: 
         """)
     else:
       self.prompt = PromptTemplate.from_template(r"""
-          <s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved 
-          context from policy documents to answer the question. If you don't know the answer, just say that you 
-          don't know. Use three sentences maximum and keep the answer concise. [/INST] </s> 
-          [INST] 
-          Question: {question} 
+          You are an assistant for question-answering tasks. Use the following pieces of retrieved 
+          context from policy and uploaded documents to answer the question. If you don't know the answer, just
+          say that you don't know. Use three sentences maximum and keep the answer concise.
+
+          Question: {question}
           Policy Context: {policy_context}
-          Answer: 
-          [/INST]
+          Helpful Answer: 
         """)
 
     self.chain = (self.context

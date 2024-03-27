@@ -6,8 +6,11 @@ from bs4 import BeautifulSoup
 
 from pathlib import Path
 
-from qdrant_client import QdrantClient
-from qdrant_client.http import models
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+from langchain_community.embeddings.fastembed import FastEmbedEmbeddings
+from langchain_community.vectorstores import Qdrant
+from langchain_community.document_loaders import PyPDFDirectoryLoader
 
 import re
 import os
@@ -51,36 +54,26 @@ def save_files(file_paths):
       file.write(response.content)
 
 def embed_files_into_qdrant():
-  FAST_EMBED_EMBEDDINGS = "BAAI/bge-small-en-v1.5"
-  COLLECTION_NAME = "ubc_pdf_policies"
-  # localhost no work, need host.docker.internal
-  # see: https://github.com/qdrant/qdrant-client/issues/105#issuecomment-1423214105 
-  qdrant_client = QdrantClient(host="host.docker.internal", port=6333)
-  qdrant_client.set_model(FAST_EMBED_EMBEDDINGS)
-  # delete old embeddings
-  try:
-    qdrant_client.delete_collection(collection_name=COLLECTION_NAME)
-  except:
-    print(f"collection {COLLECTION_NAME} doesnt exist")
-  # generate new collection
-  qdrant_client.recreate_collection(
+  embeddings = FastEmbedEmbeddings()
+  print(embeddings)
+  
+  text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
+  loader = PyPDFDirectoryLoader(path=DESTINATION)
+  documents = loader.load()
+  texts = text_splitter.split_documents(documents)
+    
+  COLLECTION_NAME = "ubc_pdf_policies" #todo make this env
+  URL = "http://qdrant_policies:6333" #todo make this env
+  qdrant = Qdrant.from_documents(
+    texts,
+    embeddings,
+    url=URL,
+    prefer_grpc=False,
     collection_name=COLLECTION_NAME,
-    vectors_config=models.VectorParams(size=384, distance=models.Distance.COSINE),
   )
-  # load and chunk documents
-  # TODO
-  # generate embeddings from chunks
-  # TODO
-  # upsert embeddings into database
-  collection_info = qdrant_client.get_collection(collection_name=COLLECTION_NAME)
-  # qdrant_client.upsert(
-  #   collection_name=COLLECTION_NAME,
-  #   ...
-  # )
-  print(collection_info)
 
 def main():
-  load_files = False
+  load_files = True
   if load_files:
     locs = determine_policy_locations()
     print("Locations determined...")

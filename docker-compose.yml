@@ -34,7 +34,7 @@ services:
       # otherwise fail with 'container for service "ollama" is unhealthy'
       test: ["CMD", "ollama", "show", "--template", "mistral"]
       retries: 0
-      timeout: 10s
+      timeout: 5s
     # -----------------------------
     # enable GPU support
     #environment:
@@ -53,12 +53,12 @@ services:
     image: qdrant/qdrant
     volumes:
       - ./qdrant_policies:/root/.qdrant_policies
-    ports: # remove in release
-      - 6333:6333
-      - 6334:6334
+    #ports: # remove in release
+    #  - 6333:6333
+    #  - 6334:6334
     expose:
       - 6333
-      - 6334
+    #  - 6334
     restart: always
     
   pull_policies:
