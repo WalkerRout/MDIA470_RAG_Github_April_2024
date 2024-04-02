@@ -46,12 +46,15 @@ def find_files_from_locations(locs):
 
 def save_files(file_paths):
   for path in file_paths:
-    response = requests.get(URL_ROOT + path)
-    file_name = Path(path).name
-    file_path = DESTINATION + file_name
-    with open(file_path, "wb") as file:
-      print(f"Saving {file_name} to {file_path}...")
-      file.write(response.content)
+    try:
+      response = requests.get(URL_ROOT + path)
+      file_name = Path(path).name
+      file_path = DESTINATION + file_name
+      with open(file_path, "wb") as file:
+        print(f"Saving {file_name} to {file_path}...")
+        file.write(response.content)
+    except:
+      print(f"Unable to save file from {URL_ROOT + path}")
 
 def embed_files_into_qdrant():
   embeddings = FastEmbedEmbeddings()
@@ -61,7 +64,7 @@ def embed_files_into_qdrant():
   loader = PyPDFDirectoryLoader(path=DESTINATION)
   documents = loader.load()
   texts = text_splitter.split_documents(documents)
-    
+
   COLLECTION_NAME = "ubc_pdf_policies" #todo make this env
   URL = "http://qdrant_policies:6333" #todo make this env
   qdrant = Qdrant.from_documents(

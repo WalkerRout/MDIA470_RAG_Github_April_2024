@@ -9,8 +9,8 @@ services:
       ollama:
         condition: service_healthy
       # pull policies and setup qdrant before app
-      pull_policies:
-        condition: service_completed_successfully
+      #pull_policies:
+      #  condition: service_completed_successfully
     volumes:
       - ./app:/app # sync local and docker files for hot reload to take effect in flask debug mode
     ports:
@@ -50,7 +50,7 @@ services:
 
   qdrant_policies:
     container_name: qdrant_policies
-    image: qdrant/qdrant
+    image: qdrant/qdrant:v1.8.0
     volumes:
       - ./qdrant_policies:/root/.qdrant_policies
     #ports: # remove in release
@@ -68,6 +68,7 @@ services:
       - qdrant_policies
     volumes:
       - ./qdrant_policies:/root/.qdrant_policies
+    #restart: always
 
 volumes:
   app:
