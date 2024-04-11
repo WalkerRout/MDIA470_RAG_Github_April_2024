@@ -75,15 +75,15 @@
             <button class="card1">
               <b class="heading1">How can I be certain that my data will be kept secure?</b>
               <div class="body-copy1">
-                See what UBC RAG can and can't do. 
+                See how UBC RAG maintain secure system preventing data leakage. 
               </div>
             </button>
           </div>
           <div class="row-2">
             <button class="card2">
-              <b class="heading2">Can you check if my project may get approved?</b>
+              <b class="heading2">Can you confirm if my project can get approved?</b>
               <div class="body-copy2">
-                See how UBC RAG maintain secure system preventing data leakage. 
+		See what UBC RAG can and can't do. 
               </div>
             </button>
             <button class="card3">
@@ -112,7 +112,7 @@
             id="messageInput"
           />
 
-          <button class="button-submit">
+          <button class="button-submit" id="submitButton">
             <div class="button-submit-child"></div>
             <img
               class="button-submit-icon"
@@ -362,10 +362,12 @@
     var closeButton = document.getElementById("successButton");
     if (closeButton) {
       closeButton.addEventListener("click", function() {
+	window.location.href = "{{ url_for('root') }}";
         var deleteSuccessModal = document.getElementById('deleteSuccessModal');
         if (deleteSuccessModal) {
           deleteSuccessModal.style.display = 'none';
         }
+
       });
     }
 
@@ -405,16 +407,32 @@
 
     // Adding an event listener to each card
     cards.forEach(function(card) {
-      card.addEventListener('click', function() {
+      card.addEventListener('click', async function() {
         // Finds the first element within the card that has a class name starting with 'heading'
         var headingElement = card.querySelector('[class^="heading"]');
         if (headingElement) {
           var headingText = headingElement.textContent.trim(); // Gets the content of the heading
-          createTextBubble(headingText); // Creates a text bubble with the heading's content
+          // query backend with answer for headingText
+          createTextBubble(headingText, true);
+          // Simulate fetching a response from UBC LLM
+	  const formData = new FormData();
+          formData.append("prompt", headingText); 
+          try {
+            const response = await fetch("/submit", {
+              method: "POST",
+              body: formData
+            });
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            const data = await response.json();
+	    createTextBubble(data.answer, false);
+          } catch (error) {
+            createTextBubble(`Error processing request ${error}`, false);
+          }
         }
       });
     });
-
 
     document.querySelector('.button-submit').addEventListener('click', async function() {
       var messageInput = document.getElementById('messageInput');
@@ -423,21 +441,37 @@
         createTextBubble(userInput, true); // Create a bubble for user input
 
         // Simulate fetching a response from UBC LLM
-        setTimeout(() => {
-          var llmResponse = "UBC-RAG";
-          createTextBubble(llmResponse, false); // Create a bubble for UBC LLM response
-        }, 1000); // Simulating response time
+	const formData = new FormData();
+        formData.append("prompt", userInput); 
+        try {
+          const response = await fetch("/submit", {
+            method: "POST",
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+
+          const data = await response.json();
+	  createTextBubble(data.answer, false);
+        } catch (error) {
+          createTextBubble(`Error processing request ${error}`, false);
+        }
 
         messageInput.value = ''; // Clear the input field
       }
     });
 
+    document.querySelector('.button-file').addEventListener('click', async function() {
+      alert("Sorry, file uploads are not yet implemented...");
+    });
 
     // Event listener for the Enter key in the message input
     document.getElementById('messageInput').addEventListener('keypress', function(event) {
       if (event.key === "Enter") {
         event.preventDefault();
-        createTextBubble(messageInput.value.trim());
+        document.getElementById('submitButton').click();
       }
     });
 
@@ -450,7 +484,7 @@
     });
 
     document.getElementById('button-data-visualize').addEventListener('click', function() {
-      window.open('./gifDisplay.html', '_blank');
+      window.open("{{ url_for('static', filename='public/data_flow.gif') }}", '_blank');
     });
     
     </script>

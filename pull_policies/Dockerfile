@@ -12,7 +12,7 @@ COPY requirements.txt requirements.txt
 RUN pip3 install --upgrade --no-cache-dir -r requirements.txt
 RUN pip3 install --upgrade --no-cache-dir pypdf==3.16.0
 RUN pip3 install --upgrade --no-cache-dir fastembed==0.2.1
-RUN pip3 install --upgrade --no-cache-dir qdrant-client==1.7.3
+RUN pip3 install --upgrade --no-cache-dir qdrant-client==1.8.0
 
 COPY . .
  

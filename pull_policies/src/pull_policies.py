@@ -76,7 +76,7 @@ def embed_files_into_qdrant():
   )
 
 def main():
-  load_files = True
+  load_files = False
   if load_files:
     locs = determine_policy_locations()
     print("Locations determined...")
