@@ -126,8 +126,8 @@ async def submit() -> str:
 
     print(retriever)
 
-    #llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
-    llm = OpenAI(api_key="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")
+    llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
+    #llm = OpenAI(api_key="...")
     rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
     
     answer = rag.run(prompt)
