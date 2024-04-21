@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # website backend implemented using Python's Flask framework
   app:
     container_name: app
     build: ./app/ # local source for backend
@@ -8,23 +9,27 @@ services:
       # build ollama before app
       ollama:
         condition: service_healthy
+
       # pull policies and setup qdrant before app
+      # !!! CHANGE THIS CHECK WHEN USING CRONTAB SINCE IT WILL NOT COMPLETE !!!
+      #
+      # Currently commented out, since it will pull policies on every build
+      #   -> this is a manual check as of now, app will break silently if policies are not pulled
       #pull_policies:
       #  condition: service_completed_successfully
     volumes:
       - ./app:/app # sync local and docker files for hot reload to take effect in flask debug mode
     ports:
-      - 5000:5000 # expose port to host
+      - 5000:5000 # expose port to host (host_port:container_port)
     environment:
       - FLASK_DEBUG=1 # remove in release
 
+  # local large language model used in the application
   ollama:
     container_name: ollama
     image: ollama/ollama
     volumes:
       - ollama:/root/.ollama
-    ports: # remove in release
-      - 11434:11434 # expose port to host
     expose:
       - 11434 # expose port to other services only
     restart: always
@@ -48,19 +53,17 @@ services:
               capabilities: [gpu]
     # -----------------------------
 
+  # on-disk vector database to hold all UBC pdf policy embeddings
   qdrant_policies:
     container_name: qdrant_policies
     image: qdrant/qdrant:v1.8.0
     volumes:
       - ./qdrant_policies:/root/.qdrant_policies
-    #ports: # remove in release
-    #  - 6333:6333
-    #  - 6334:6334
     expose:
       - 6333
-    #  - 6334
     restart: always
     
+  # scrape and download all UBC policy pdf documents + embed them into qdrant_policies
   pull_policies:
     container_name: pull_policies
     build: ./pull_policies/
@@ -68,8 +71,8 @@ services:
       - qdrant_policies
     volumes:
       - ./qdrant_policies:/root/.qdrant_policies
-    #restart: always
 
+# persistent volumes (accessible from folders on disk)
 volumes:
   app:
     name: app

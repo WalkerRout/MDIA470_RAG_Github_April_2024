@@ -27,7 +27,9 @@ from user_storage import UserStorage
 ALLOWED_EXTENSIONS = ["pdf"]
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
+# directory for static data (css, js, .png, etc)
 STATIC_DIR = os.path.join(DIR_PATH, "../static")
+# directory for templates (index.html)
 TEMPLATE_DIR = os.path.join(DIR_PATH, "../templates")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
@@ -39,6 +41,12 @@ app.config.update(SESSION_COOKIE_SAMESITE="None", SESSION_COOKIE_SECURE=True)
 Session(app)
 
 def allowed_file(file_name: str) -> bool:
+  """
+    @params:  file_name {str} - name of file to verify
+    @purpose: check whether a file name is valid by making sure its
+              extension is under ALLOWED_EXTENSIONS
+    @returns: bool - true if file is allowed, false if file is not allowed
+  """
   return '.' in file_name and \
     file_name.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -56,17 +64,16 @@ async def root() -> str:
   uploaded_files = []
   if session.get("storage"):
     uploaded_files = session["storage"].upload_names()
-    subprocess.run(["ls", "-al", session["storage"].path()])
 
   return render_template("index.html", **locals())
 
+"""
+ ####### FILE UPLOAD IS NOT YET COMPLETE, THIS IS WHAT IT MAY LOOK LIKE #######
 @app.route("/upload", methods=["POST"])
 async def upload() -> str:
-  """
-    @params:  N/A
-    @purpose: upload a file in request.files to session["storage"] TemporaryDirectory object
-    @returns: str - HTML presented to user
-  """
+  # @params:  N/A
+  # @purpose: upload a file in request.files to session["storage"] TemporaryDirectory object
+  # @returns: str - HTML presented to user
   if "storage" not in session:
     session["storage"] = UserStorage()
 
@@ -81,6 +88,7 @@ async def upload() -> str:
   session["storage"] = storage
 
   return redirect(url_for("root"))
+"""
 
 @app.route("/submit", methods=["POST"])
 async def submit() -> str:
@@ -91,6 +99,8 @@ async def submit() -> str:
   """
   if "history" not in session:
     session["history"] = []
+
+  answer = "Invalid prompt, please try again!"
 
   embeddings = FastEmbedEmbeddings()
 
@@ -126,40 +136,19 @@ async def submit() -> str:
 
     print(retriever)
 
+    # comment out ChatOllama line and use llm = OpenAI(api_key="your-api-key-here") to use non-local model
     llm = ChatOllama(base_url="http://ollama:11434", model="mistral")
-    #llm = OpenAI(api_key="...")
     rag = PolicyRAG(llm, retriever) # eventually chunk and cache files, check if files changed to rerun embeddings
     
+    # evaluate the answer
     answer = rag.run(prompt)
 
+    # update history with next answer
     session["history"] = session.get("history") + ["answer: " + answer]
 
+  # return answer and history
   return {"answer": answer, "history": session["history"]}
 
-@app.route("/clear-history")
-async def clear_history():
-  """
-    @params:  N/A
-    @purpose: pop "history" from session
-    @returns: str - HTML presented to user
-  """
-  session.pop("history", None)
-  flash("Conversation history successfully cleaned!")
-  return redirect(request.referrer)
-
-@app.route("/clear-storage")
-async def clear_storage():
-  """
-    @params:  N/A
-    @purpose: cleanup temporary directory and pop "storage" from session
-    @returns: str - HTML presented to user
-  """
-  if session.get("storage"):
-    session["storage"].cleanup()
-  session.pop("storage", None)
-  flash("Session storage successfully cleaned!")
-  return redirect(request.referrer)
-
 if __name__ == "__main__":
-  # run with debug=True for hot reloading
+  # run with debug=True for hot reloading, remove when using release WSGI server
   app.run(debug=True)

@@ -96,14 +96,13 @@
         </section>
 
         <footer class="search-bar">
-          <button class="button-file">
+           <input class="file-input" type="file" name="files" id="fileInput" multiple style="display: none;">
+  
+           <!-- SVG button -->
+           <label for="fileInput" class="button-file">
             <div class="button-file-child"></div>
-            <img
-              class="button-attach-icon"
-              alt=""
-              src="{{ url_for('static', filename='public/buttonattach.svg') }}"
-            />
-          </button>
+           <img class="button-attach-icon" alt="" src="{{ url_for('static', filename='public/buttonattach.svg') }}">
+            </label>
 
           <input
             class="write-your-question"
@@ -112,7 +111,7 @@
             id="messageInput"
           />
 
-          <button class="button-submit" id="submitButton">
+          <button class="button-submit">
             <div class="button-submit-child"></div>
             <img
               class="button-submit-icon"
@@ -404,7 +403,6 @@
       }
     }
 
-
     // Adding an event listener to each card
     cards.forEach(function(card) {
       card.addEventListener('click', async function() {
@@ -415,7 +413,7 @@
           // query backend with answer for headingText
           createTextBubble(headingText, true);
           // Simulate fetching a response from UBC LLM
-	  const formData = new FormData();
+	        const formData = new FormData();
           formData.append("prompt", headingText); 
           try {
             const response = await fetch("/submit", {
@@ -426,7 +424,7 @@
               throw new Error("Network response was not ok");
             }
             const data = await response.json();
-	    createTextBubble(data.answer, false);
+	          createTextBubble(data.answer, false);
           } catch (error) {
             createTextBubble(`Error processing request ${error}`, false);
           }
@@ -434,14 +432,43 @@
       });
     });
 
+    // file upload selector
+    document.querySelector('.file-input').addEventListener('change', function() {
+      // Get the search bar element
+      var searchBar = document.querySelector('.search-bar');
+      
+      // Check if a file is selected
+      if (this.files && this.files.length > 0) {
+        // Change the height of the search bar
+        searchBar.style.height = '150px'; // Change to the desired height
+        
+        // Show the SVG icon by setting the src attribute of an img element
+        var imgIcon = document.createElement('img');
+        imgIcon.setAttribute('id', 'fileUploadIcon');
+        imgIcon.setAttribute('src', "{{ url_for('static', filename='public/document_icon.svg') }}"); // Modify this line
+        imgIcon.setAttribute('alt', 'Upload Icon'); // Add alt attribute for accessibility
+        
+        // Append the img element to the search bar before the content
+        searchBar.insertBefore(imgIcon, searchBar.firstChild);
+      } else {
+        // Reset the height of the search bar (if needed)
+        searchBar.style.height = ''; // Reset to default height
+        
+        // Hide the SVG icon (if it exists)
+        var imgIcon = document.getElementById('fileUploadIcon');
+        if (imgIcon) {
+          imgIcon.remove();
+        }
+      }
+    });
+
     document.querySelector('.button-submit').addEventListener('click', async function() {
       var messageInput = document.getElementById('messageInput');
       var userInput = messageInput.value.trim();
       if (userInput) {
         createTextBubble(userInput, true); // Create a bubble for user input
-
         // Simulate fetching a response from UBC LLM
-	const formData = new FormData();
+	      const formData = new FormData();
         formData.append("prompt", userInput); 
         try {
           const response = await fetch("/submit", {
@@ -454,17 +481,13 @@
           }
 
           const data = await response.json();
-	  createTextBubble(data.answer, false);
+          createTextBubble(data.answer, false);
         } catch (error) {
           createTextBubble(`Error processing request ${error}`, false);
         }
 
         messageInput.value = ''; // Clear the input field
       }
-    });
-
-    document.querySelector('.button-file').addEventListener('click', async function() {
-      alert("Sorry, file uploads are not yet implemented...");
     });
 
     // Event listener for the Enter key in the message input

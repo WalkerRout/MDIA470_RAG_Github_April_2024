@@ -19,9 +19,13 @@ import datetime
 # internal modules
 # N/A
 
+# policy path constant
 URL = "https://universitycounsel.ubc.ca/policies/"
+# universitycounsel website root constant
 URL_ROOT = "https://universitycounsel.ubc.ca"
+# regex for each policy pdf href looks like for the anchor tags
 REGEX_URL = r"^https://universitycounsel\.ubc\.ca/policies/.+$"
+# volume for storing policies
 DESTINATION = "/root/.qdrant_policies/policies/"
 
 def determine_policy_locations():
@@ -40,13 +44,16 @@ def find_files_from_locations(locs):
     anchors = soup.find_all("a", href=True)
     for anchor in anchors:
       href = anchor["href"]
+      # is the href going to a pdf?
       if pdf.match(href):
+        # stick it in the file list!
         files.append(href)
   return files
 
 def save_files(file_paths):
   for path in file_paths:
     try:
+      # save file given pdf resource path
       response = requests.get(URL_ROOT + path)
       file_name = Path(path).name
       file_path = DESTINATION + file_name
@@ -58,13 +65,15 @@ def save_files(file_paths):
 
 def embed_files_into_qdrant():
   embeddings = FastEmbedEmbeddings()
-  print(embeddings)
   
+  # split text documents stored in DESTINATION
   text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=100)
   loader = PyPDFDirectoryLoader(path=DESTINATION)
   documents = loader.load()
   texts = text_splitter.split_documents(documents)
 
+  # create embeddings from policies, Qdrant.from_documents truncates and recreates
+  # collection with collection_name
   COLLECTION_NAME = "ubc_pdf_policies" #todo make this env
   URL = "http://qdrant_policies:6333" #todo make this env
   qdrant = Qdrant.from_documents(
@@ -76,7 +85,7 @@ def embed_files_into_qdrant():
   )
 
 def main():
-  load_files = False
+  load_files = True
   if load_files:
     locs = determine_policy_locations()
     print("Locations determined...")
@@ -89,5 +98,6 @@ def main():
 
 if __name__ == "__main__":
   main()
-  print("DONE")
+  print("DONE PULLING AND EMBEDDING POLICIES")
   print(datetime.datetime.today())
+  print("'app' container can now be used!")

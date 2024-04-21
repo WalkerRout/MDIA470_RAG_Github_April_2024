@@ -6,6 +6,17 @@ import tempfile
 # internal modules
 # N/A
 
+"""
+  UserStorage encapsulates a method of storing user-uploaded files
+
+  Current implementation uses tempfile to create and serialize the handle to a temporary
+  directory, which is then stored with flask-session for each user. This is not scalable,
+  and there are bugs present where the temporary directory is deleted, but the file handle
+  is stilled stored in the flask-session cache. 
+
+  Should implement logic to check whether an error occurs when trying to trace handle location, 
+  where re-initializing with logic in UserStorage.__init__ should create a new, working location
+"""
 class UserStorage:
   def __init__(self):
     self.handle = tempfile.TemporaryDirectory(delete=False)
