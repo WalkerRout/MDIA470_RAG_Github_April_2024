@@ -25,11 +25,13 @@ Of course, if you want to run the application with a single command, just chain 
   `$ docker system prune`
 - It is recommended to use the 'Clean/Purge data' option in Docker Desktop to fully reclaim space
 
-### Common Pitfalls
+### Pitfalls/Tips
 - Trying to submit a prompt before the policies are finished pulling will cause the app to crash
   - Wait for the pull_policies container to output "DONE PULLING AND EMBEDDING POLICIES"
 - Trying to run the project on a machine without a separate, dedicated GPU will cause errors if GPU support is enabled for the ollama container in docker-compose.yml
   - Delete or comment out all the "enable GPU support" lines between the '-----------------------------' comments
+- If you need to stop the app and want to re-run it afterwards (**after everything has been pulled and setup**), just use;\
+  `$ docker compose up app`
 
 ### Support
 - Contact `walkerrout04@gmail.com` for any questions.
