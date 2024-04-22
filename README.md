@@ -1,4 +1,4 @@
-# MDIA470_RAG_04.22.24
+# MDIA470_RAG_April2024
 ### Setup and Run
 - Clone this repository with; \
   `git clone https://github.com/WalkerRout/project3.git`
